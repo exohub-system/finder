@@ -1,0 +1,438 @@
+-- ╔═══════════════════════════════════╗
+--   EXO HUB | Player Finder
+--   Find & Join anyone's game
+--   discord.gg/6QzV9pTWs
+-- ╚═══════════════════════════════════╝
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local lp = Players.LocalPlayer
+
+if lp.PlayerGui:FindFirstChild("ExoFinderUI") then
+    lp.PlayerGui.ExoFinderUI:Destroy()
+end
+
+local SG = Instance.new("ScreenGui")
+SG.Name = "ExoFinderUI"
+SG.ResetOnSpawn = false
+SG.DisplayOrder = 999
+SG.IgnoreGuiInset = true
+SG.Parent = lp.PlayerGui
+
+-- // MINIMISE STATE
+local minimised = false
+local FULL_SIZE = UDim2.new(0, 240, 0, 300)
+local MINI_SIZE = UDim2.new(0, 240, 0, 44)
+
+-- // MAIN WINDOW
+local W = Instance.new("Frame")
+W.Size = FULL_SIZE
+W.Position = UDim2.new(0.5, -120, 0.5, -150)
+W.BackgroundColor3 = Color3.fromRGB(7, 5, 16)
+W.BorderSizePixel = 0
+W.ClipsDescendants = true
+W.Active = true
+W.Draggable = true
+W.Parent = SG
+Instance.new("UICorner", W).CornerRadius = UDim.new(0, 14)
+
+local wStroke = Instance.new("UIStroke")
+wStroke.Color = Color3.fromRGB(0, 180, 255)
+wStroke.Thickness = 1.5
+wStroke.Transparency = 0.3
+wStroke.Parent = W
+
+local wGrad = Instance.new("UIGradient")
+wGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0,   Color3.fromRGB(6, 12, 30)),
+    ColorSequenceKeypoint.new(0.7, Color3.fromRGB(7, 5, 16)),
+    ColorSequenceKeypoint.new(1,   Color3.fromRGB(3, 2, 10)),
+})
+wGrad.Rotation = 135
+wGrad.Parent = W
+
+-- // TITLE BAR
+local TB = Instance.new("Frame")
+TB.Size = UDim2.new(1, 0, 0, 44)
+TB.BackgroundColor3 = Color3.fromRGB(6, 10, 26)
+TB.BorderSizePixel = 0
+TB.ZIndex = 2
+TB.Parent = W
+Instance.new("UICorner", TB).CornerRadius = UDim.new(0, 14)
+local TBFix = Instance.new("Frame")
+TBFix.Size = UDim2.new(1, 0, 0.5, 0)
+TBFix.Position = UDim2.new(0, 0, 0.5, 0)
+TBFix.BackgroundColor3 = Color3.fromRGB(6, 10, 26)
+TBFix.BorderSizePixel = 0
+TBFix.ZIndex = 2
+TBFix.Parent = TB
+
+-- shimmer
+local shim = Instance.new("Frame")
+shim.Size = UDim2.new(1, 0, 0, 2)
+shim.Position = UDim2.new(0, 0, 1, -2)
+shim.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+shim.BorderSizePixel = 0
+shim.ZIndex = 3
+shim.Parent = TB
+local shimGrad = Instance.new("UIGradient")
+shimGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0,   Color3.fromRGB(0,0,0)),
+    ColorSequenceKeypoint.new(0.4, Color3.fromRGB(0,160,255)),
+    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(100,220,255)),
+    ColorSequenceKeypoint.new(1,   Color3.fromRGB(0,0,0)),
+})
+shimGrad.Parent = shim
+task.spawn(function()
+    local t = 0
+    while SG.Parent do t += 0.025; shimGrad.Offset = Vector2.new(math.sin(t)*0.8,0); task.wait(0.03) end
+end)
+
+local titleLbl = Instance.new("TextLabel")
+titleLbl.Size = UDim2.new(1, -80, 1, 0)
+titleLbl.Position = UDim2.new(0, 12, 0, 0)
+titleLbl.BackgroundTransparency = 1
+titleLbl.Text = "PLAYER FINDER"
+titleLbl.Font = Enum.Font.GothamBlack
+titleLbl.TextSize = 14
+titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+titleLbl.ZIndex = 3
+titleLbl.Parent = TB
+local tGrad = Instance.new("UIGradient")
+tGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0,   Color3.fromRGB(0, 200, 255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(1,   Color3.fromRGB(0, 160, 220)),
+})
+tGrad.Rotation = 90
+tGrad.Parent = titleLbl
+
+-- minimise button
+local minBtn = Instance.new("TextButton")
+minBtn.Size = UDim2.new(0, 24, 0, 24)
+minBtn.Position = UDim2.new(1, -58, 0.5, -12)
+minBtn.BackgroundColor3 = Color3.fromRGB(20, 30, 60)
+minBtn.Text = "─"
+minBtn.TextColor3 = Color3.fromRGB(0, 180, 255)
+minBtn.Font = Enum.Font.GothamBold
+minBtn.TextSize = 12
+minBtn.BorderSizePixel = 0
+minBtn.ZIndex = 3
+minBtn.Parent = TB
+Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 6)
+Instance.new("UIStroke", minBtn).Color = Color3.fromRGB(0, 100, 180)
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 24, 0, 24)
+closeBtn.Position = UDim2.new(1, -30, 0.5, -12)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 60)
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 11
+closeBtn.BorderSizePixel = 0
+closeBtn.ZIndex = 3
+closeBtn.Parent = TB
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+closeBtn.MouseButton1Click:Connect(function() SG:Destroy() end)
+
+-- // MINIMISE LOGIC
+minBtn.MouseButton1Click:Connect(function()
+    minimised = not minimised
+    local target = minimised and MINI_SIZE or FULL_SIZE
+    minBtn.Text = minimised and "+" or "─"
+    TweenService:Create(W, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+        Size = target
+    }):Play()
+end)
+
+-- // CONTENT (below title bar)
+
+-- search label
+local searchLbl = Instance.new("TextLabel")
+searchLbl.Size = UDim2.new(1, -20, 0, 16)
+searchLbl.Position = UDim2.new(0, 10, 0, 54)
+searchLbl.BackgroundTransparency = 1
+searchLbl.Text = "Username"
+searchLbl.Font = Enum.Font.GothamBold
+searchLbl.TextSize = 11
+searchLbl.TextColor3 = Color3.fromRGB(0, 170, 220)
+searchLbl.TextXAlignment = Enum.TextXAlignment.Left
+searchLbl.ZIndex = 2
+searchLbl.Parent = W
+
+-- input box
+local inputContainer = Instance.new("Frame")
+inputContainer.Size = UDim2.new(1, -20, 0, 38)
+inputContainer.Position = UDim2.new(0, 10, 0, 74)
+inputContainer.BackgroundColor3 = Color3.fromRGB(8, 12, 28)
+inputContainer.BorderSizePixel = 0
+inputContainer.ZIndex = 2
+inputContainer.Parent = W
+Instance.new("UICorner", inputContainer).CornerRadius = UDim.new(0, 10)
+local inputStroke = Instance.new("UIStroke")
+inputStroke.Color = Color3.fromRGB(0, 80, 150)
+inputStroke.Thickness = 1
+inputStroke.Parent = inputContainer
+
+local inputBox = Instance.new("TextBox")
+inputBox.Size = UDim2.new(1, -16, 1, 0)
+inputBox.Position = UDim2.new(0, 10, 0, 0)
+inputBox.BackgroundTransparency = 1
+inputBox.PlaceholderText = "Enter username..."
+inputBox.PlaceholderColor3 = Color3.fromRGB(50, 80, 120)
+inputBox.Text = ""
+inputBox.TextColor3 = Color3.fromRGB(180, 230, 255)
+inputBox.Font = Enum.Font.GothamBold
+inputBox.TextSize = 13
+inputBox.ClearTextOnFocus = false
+inputBox.ZIndex = 3
+inputBox.Parent = inputContainer
+
+inputBox.Focused:Connect(function()
+    TweenService:Create(inputStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(0, 180, 255), Thickness = 1.5}):Play()
+end)
+inputBox.FocusLost:Connect(function()
+    TweenService:Create(inputStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(0, 80, 150), Thickness = 1}):Play()
+end)
+
+-- search button
+local searchBtn = Instance.new("TextButton")
+searchBtn.Size = UDim2.new(1, -20, 0, 38)
+searchBtn.Position = UDim2.new(0, 10, 0, 120)
+searchBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 200)
+searchBtn.Text = "🔍  FIND PLAYER"
+searchBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+searchBtn.Font = Enum.Font.GothamBold
+searchBtn.TextSize = 13
+searchBtn.BorderSizePixel = 0
+searchBtn.ZIndex = 2
+searchBtn.Parent = W
+Instance.new("UICorner", searchBtn).CornerRadius = UDim.new(0, 10)
+local btnGrad = Instance.new("UIGradient")
+btnGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 180, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 100, 180)),
+})
+btnGrad.Rotation = 135
+btnGrad.Parent = searchBtn
+
+searchBtn.MouseEnter:Connect(function()
+    TweenService:Create(searchBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(0, 170, 240)}):Play()
+end)
+searchBtn.MouseLeave:Connect(function()
+    TweenService:Create(searchBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 140, 200)}):Play()
+end)
+
+-- result card
+local resultCard = Instance.new("Frame")
+resultCard.Size = UDim2.new(1, -20, 0, 100)
+resultCard.Position = UDim2.new(0, 10, 0, 170)
+resultCard.BackgroundColor3 = Color3.fromRGB(8, 12, 28)
+resultCard.BackgroundTransparency = 0.3
+resultCard.BorderSizePixel = 0
+resultCard.ZIndex = 2
+resultCard.Parent = W
+Instance.new("UICorner", resultCard).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", resultCard).Color = Color3.fromRGB(0, 60, 120)
+
+-- result labels
+local resultName = Instance.new("TextLabel")
+resultName.Size = UDim2.new(1, -16, 0, 22)
+resultName.Position = UDim2.new(0, 10, 0, 8)
+resultName.BackgroundTransparency = 1
+resultName.Text = "—"
+resultName.Font = Enum.Font.GothamBold
+resultName.TextSize = 13
+resultName.TextColor3 = Color3.fromRGB(180, 230, 255)
+resultName.TextXAlignment = Enum.TextXAlignment.Left
+resultName.ZIndex = 3
+resultName.Parent = resultCard
+
+local resultGame = Instance.new("TextLabel")
+resultGame.Size = UDim2.new(1, -16, 0, 18)
+resultGame.Position = UDim2.new(0, 10, 0, 30)
+resultGame.BackgroundTransparency = 1
+resultGame.Text = "Not searched yet"
+resultGame.Font = Enum.Font.Gotham
+resultGame.TextSize = 11
+resultGame.TextColor3 = Color3.fromRGB(80, 140, 180)
+resultGame.TextXAlignment = Enum.TextXAlignment.Left
+resultGame.TextWrapped = true
+resultGame.ZIndex = 3
+resultGame.Parent = resultCard
+
+local resultStatus = Instance.new("TextLabel")
+resultStatus.Size = UDim2.new(1, -16, 0, 16)
+resultStatus.Position = UDim2.new(0, 10, 0, 52)
+resultStatus.BackgroundTransparency = 1
+resultStatus.Text = ""
+resultStatus.Font = Enum.Font.GothamBold
+resultStatus.TextSize = 10
+resultStatus.TextColor3 = Color3.fromRGB(0, 200, 120)
+resultStatus.TextXAlignment = Enum.TextXAlignment.Left
+resultStatus.ZIndex = 3
+resultStatus.Parent = resultCard
+
+-- join button (hidden until result found)
+local joinBtn = Instance.new("TextButton")
+joinBtn.Size = UDim2.new(1, -20, 0, 28)
+joinBtn.Position = UDim2.new(0, 10, 0, 72)
+joinBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 100)
+joinBtn.Text = "⚡  JOIN GAME"
+joinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+joinBtn.Font = Enum.Font.GothamBold
+joinBtn.TextSize = 12
+joinBtn.BorderSizePixel = 0
+joinBtn.Visible = false
+joinBtn.ZIndex = 3
+joinBtn.Parent = resultCard
+Instance.new("UICorner", joinBtn).CornerRadius = UDim.new(0, 8)
+
+-- watermark
+local wm = Instance.new("TextLabel")
+wm.Size = UDim2.new(1, -20, 0, 14)
+wm.Position = UDim2.new(0, 10, 1, -20)
+wm.BackgroundTransparency = 1
+wm.Text = "discord.gg/6QzV9pTWs"
+wm.Font = Enum.Font.Gotham
+wm.TextSize = 10
+wm.TextColor3 = Color3.fromRGB(0, 60, 100)
+wm.TextXAlignment = Enum.TextXAlignment.Center
+wm.ZIndex = 2
+wm.Parent = W
+
+-- // FINDER LOGIC
+local foundPlaceId = nil
+local foundJobId = nil
+
+local function setStatus(text, color)
+    resultStatus.Text = text
+    resultStatus.TextColor3 = color or Color3.fromRGB(0, 200, 120)
+end
+
+local function findPlayer()
+    local username = inputBox.Text:gsub("^%s*(.-)%s*$", "%1") -- trim spaces
+    if username == "" then
+        setStatus("⚠ Enter a username first", Color3.fromRGB(255, 200, 0))
+        return
+    end
+
+    joinBtn.Visible = false
+    foundPlaceId = nil
+    foundJobId = nil
+    resultName.Text = "Searching..."
+    resultGame.Text = ""
+    setStatus("", Color3.fromRGB(255,255,255))
+    searchBtn.Text = "🔍  Searching..."
+    searchBtn.Active = false
+
+    -- step 1: get user ID from username
+    local ok1, userData = pcall(function()
+        return HttpService:JSONDecode(
+            HttpService:GetAsync("https://api.roblox.com/users/get-by-username?username=" .. username)
+        )
+    end)
+
+    if not ok1 or not userData or userData.errorMessage then
+        resultName.Text = "User not found"
+        resultGame.Text = "Check the spelling and try again"
+        setStatus("✗ User does not exist", Color3.fromRGB(255, 80, 80))
+        searchBtn.Text = "🔍  FIND PLAYER"
+        searchBtn.Active = true
+        return
+    end
+
+    local userId = userData.Id
+    resultName.Text = "👤 " .. userData.Username
+
+    -- step 2: get presence (what game they're in)
+    local ok2, presenceData = pcall(function()
+        return HttpService:JSONDecode(
+            HttpService:PostAsync(
+                "https://presence.roblox.com/v1/presence/users",
+                HttpService:JSONEncode({userIds = {userId}}),
+                Enum.HttpContentType.ApplicationJson
+            )
+        )
+    end)
+
+    searchBtn.Text = "🔍  FIND PLAYER"
+    searchBtn.Active = true
+
+    if not ok2 or not presenceData or not presenceData.userPresences or #presenceData.userPresences == 0 then
+        resultGame.Text = "Could not fetch presence"
+        setStatus("✗ API error", Color3.fromRGB(255, 80, 80))
+        return
+    end
+
+    local presence = presenceData.userPresences[1]
+    local presenceType = presence.userPresenceType
+
+    -- presenceType: 0 = offline, 1 = online (website), 2 = in game, 3 = in studio
+    if presenceType == 0 then
+        resultGame.Text = "This player is offline"
+        setStatus("⚫ Offline", Color3.fromRGB(150, 150, 150))
+    elseif presenceType == 1 then
+        resultGame.Text = "Browsing Roblox website"
+        setStatus("🟡 Online — not in a game", Color3.fromRGB(255, 220, 0))
+    elseif presenceType == 3 then
+        resultGame.Text = "In Roblox Studio"
+        setStatus("🟠 In Studio", Color3.fromRGB(255, 140, 0))
+    elseif presenceType == 2 then
+        local gameName = presence.lastLocation or "Unknown Game"
+        local placeId = presence.placeId
+        local jobId = presence.gameId
+
+        resultGame.Text = "🎮 " .. gameName
+        setStatus("🟢 In game — ready to join!", Color3.fromRGB(0, 220, 120))
+
+        if placeId and jobId then
+            foundPlaceId = placeId
+            foundJobId = jobId
+            joinBtn.Visible = true
+        else
+            setStatus("🟢 In game — join unavailable (private)", Color3.fromRGB(255, 180, 0))
+        end
+    else
+        resultGame.Text = "Unknown status"
+        setStatus("❓ Unknown", Color3.fromRGB(180, 180, 180))
+    end
+end
+
+-- // JOIN LOGIC
+joinBtn.MouseButton1Click:Connect(function()
+    if not foundPlaceId or not foundJobId then return end
+    joinBtn.Text = "Joining..."
+    joinBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 80)
+    pcall(function()
+        TeleportService:TeleportToPlaceInstance(foundPlaceId, foundJobId, lp)
+    end)
+end)
+
+searchBtn.MouseButton1Click:Connect(findPlayer)
+inputBox.FocusLost:Connect(function(enter)
+    if enter then findPlayer() end
+end)
+
+-- // PULSE ANIMATION
+local t = 0
+RunService.Heartbeat:Connect(function(dt)
+    if not SG.Parent then return end
+    t += dt
+    local pulse = (math.sin(t * 2.5) + 1) / 2
+    wStroke.Transparency = 0.1 + pulse * 0.3
+    tGrad.Rotation = (t * 22) % 360
+end)
+
+-- // OPEN ANIM
+W.Position = UDim2.new(0.5, -120, -0.4, 0)
+TweenService:Create(W, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Position = UDim2.new(0.5, -120, 0.5, -150)
+}):Play()
+
+print("[EXO HUB] Player Finder loaded | discord.gg/6QzV9pTWs")
